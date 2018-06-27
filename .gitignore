@@ -1,4 +1,9 @@
-bin/
-Dane.txt
-.idea/
+/bin/
+/.idea/
 *.iml
+/build/
+/.gradle
+
+Dane.txt
+
+!gradle-wrapper.jar
