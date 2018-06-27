@@ -1,0 +1,13 @@
+scheme=http
+domain=176.119.59.95
+port=3000
+path=api/datasources/proxy/1/render
+from=-7d
+until=now
+format=json
+amoutOfTargets=2
+target.1=aliasByNode(sitespeed_io.bilety_na_wydarzenia.pageSummary.*.*.chrome.native.browsertime.statistics.visualMetrics.LastVisualChange.mean, 3)
+target.2=aliasByNode(sitespeed_io.bilety_na_wydarzenia.pageSummary.*.*.chrome.native.browsertime.statistics.timings.pageTimings.backEndTime.mean, 3)
+target.3=
+target.4=
+target.5=
