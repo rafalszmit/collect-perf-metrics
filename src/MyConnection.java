@@ -29,8 +29,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.json.*;
-
+import org.json.*;//commentarz
 public class MyConnection {
 
 	private String sendPost(String url, String urlParameters) throws Exception {
