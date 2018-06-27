@@ -1,380 +1,203 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.io.PrintWriter;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.json.*;
-
 public class MyConnection {
 
-	public static void main(String[] args) throws Exception {
-//		1. responseData = http.sendPost(key, value.get(i));
-//		2. performanceData2 = parsePerSite(responseData);
-//		3. stats(performanceData2);
-		MyConnection http = new MyConnection();
-		Map<String, ArrayList<String>> urlAndTargets;
+    static String CONFIG_FILE = "config.properties";
 
-		urlAndTargets = getUrlParameters("config.properties");
-		System.out.println("urlAndTargets\n"+urlAndTargets);
+    public static void main(String[] args) throws Exception {
 
-		urlAndTargets.entrySet().stream().forEach(x -> {
-			String key = x.getKey();
-			List<String> value = x.getValue();
-			List<String> filteredStatsStream = value.stream().collect(Collectors.toList());
-			filteredStatsStream.forEach(val -> {
-				try {
-					//stats(parsePerSite(http.sendPost(key, val)));
-					//printMap(stats(parsePerSite(http.sendPost(key, val))));
-					printMap(statsImproved2(parsePerSite(http.sendPost(key, val))));
-					//saveToTxt(stats(parsePerSite(http.sendPost(key, val))),"Dane");
+        MyConnection http = new MyConnection();
 
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			});
-		});
-	}
+        String url = getUrl(CONFIG_FILE);
+        List<String> postParameters = getUrlParameters(CONFIG_FILE);
 
-	private String sendPost(String url, String urlParameters) throws Exception {
+        postParameters.forEach(postParameter -> {
 
-		URL u = new URL(url);
+            try {
+                String metricData = http.sendPost(url, postParameter);
+                Map<String, List<Double>> measurementsPerSite = parseMeasurementsPerSite(metricData);
+                Map<String, List<Double>> statsPerSite = calculateStatsPerSite(measurementsPerSite);
+                String output = prepareOutput(postParameter, statsPerSite);
+                saveToFile(output, "Dane.txt");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
 
-		HttpURLConnection con = (HttpURLConnection) u.openConnection();
-		con.setDoOutput(true);
-		con.setRequestMethod("POST");
+    private String sendPost(String url, String urlParameters) throws Exception {
 
-		byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
-		int postDataLength = postData.length;
+        URL u = new URL(url);
 
-		con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-		con.setRequestProperty("charset", "utf-8");
-		con.setRequestProperty("Content-Length", Integer.toString(postDataLength));
+        HttpURLConnection con = (HttpURLConnection) u.openConnection();
+        con.setDoOutput(true);
+        con.setRequestMethod("POST");
 
-		try (DataOutputStream wr = new DataOutputStream(con.getOutputStream())) {
-			wr.write(postData);
-		}
+        byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
+        int postDataLength = postData.length;
 
-		BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
-		StringBuilder sb = new StringBuilder();
-		String line;
-		while ((line = br.readLine()) != null) {
-			sb.append(line + "\n");
-		}
-		br.close();
-		String grafData = sb.toString();
-		return grafData;
-	}
+        con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        con.setRequestProperty("charset", "utf-8");
+        con.setRequestProperty("Content-Length", Integer.toString(postDataLength));
 
-	private static Map<Long, ArrayList<Float>> parsePerTimestamps(String grafData) {
+        try (DataOutputStream wr = new DataOutputStream(con.getOutputStream())) {
+            wr.write(postData);
+        }
 
-		JSONArray response = new JSONArray(grafData);
-		JSONArray datapoints;
-		Long timeStamp;
-		Float valueData;
-		String sData;
-		ArrayList<Float> valueList = new ArrayList<Float>();
+        BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line + "\n");
+        }
+        br.close();
+        String grafData = sb.toString();
+        return grafData;
+    }
 
-		Map<Long, ArrayList<Float>> stampsAndData = new HashMap<>();
+    private static Map<String, List<Double>> parseMeasurementsPerSite(String grafData) {
 
-		for (Object obj : response) {
-			datapoints = ((JSONObject) obj).getJSONArray("datapoints");
-			// targetName = ((JSONObject) obj).getString("target");
+        JSONArray response = new JSONArray(grafData);
+        Map<String, List<Double>> outputList = new HashMap<>();
+        List<Double> valuePerSite = new ArrayList<Double>();
 
-			for (Object datapointsEntry : (JSONArray) datapoints) {
-				timeStamp = Long.parseLong(((JSONArray) datapointsEntry).get(1).toString());
-				sData = ((JSONArray) datapointsEntry).get(0).toString();
-				if (!sData.equals("null")) {
-					valueData = Float.parseFloat(sData);
-				} else {
-					valueData = null;
-				}
-				if (!stampsAndData.containsKey(timeStamp)) {
-					valueList = new ArrayList<Float>();
-					valueList.add(valueData);
-					stampsAndData.put(timeStamp, valueList);
-				} else {
-					stampsAndData.get(timeStamp).add(valueData);
-				}
-			}
-		}
-		return stampsAndData;
-	}
+        for (Object obj : response) {
+            String targetName = ((JSONObject) obj).getString("target");
+            JSONArray datapoints = ((JSONObject) obj).getJSONArray("datapoints");
+            Stream<Double> pointValuesStream = datapoints.toList().stream()
+                    .filter(el -> ((ArrayList) el).get(0) != null)
+                    .map(el -> (Double.parseDouble(((ArrayList) el).get(0).toString())));
+            valuePerSite = pointValuesStream.collect(Collectors.toList());
+            outputList.put(targetName, valuePerSite);
+        }
 
-	private static Map<String, List<Double>> parsePerSite(String grafData) {
+        return outputList;
+    }
 
-		JSONArray response = new JSONArray(grafData);
-		JSONArray datapoints;
-		String targetName;
-		Map<String, List<Double>> outputList = new HashMap<>();
-		List<Double> valuePerSite = new ArrayList<Double>();
+    private static String prepareOutput(String header, Map<String, List<Double>> sitesWithStats) {
+        String LF = "\n";
+        StringBuffer output = new StringBuffer();
+        output.append(header + LF);
+        output.append("site,min,max,mean,stdev" + LF);
+        for (Map.Entry<String, List<Double>> entry : sitesWithStats.entrySet()) {
+            String site = entry.getKey();
+            List<Double> stats = entry.getValue();
+            Stream<Double> statsStream = stats.stream();
+            output.append(site + "," + statsStream.map(x -> ((Double) x).toString()).collect(Collectors.joining(",")) + LF);
+        }
+        output.append(LF);
+        return output.toString();
+    }
 
-		for (Object obj : response) {
-			targetName = ((JSONObject) obj).getString("target");
-			datapoints = ((JSONObject) obj).getJSONArray("datapoints");
+    private static void saveToFile(String output, String fileName) {
 
-			for (Object datapointsEntry : (JSONArray) datapoints) {
-				Stream<Double> pointValuesStream = datapoints.toList().stream()
-						.filter(el -> ((ArrayList) el).get(0) != null)
-						.map(el -> (Double.parseDouble(((ArrayList) el).get(0).toString())));
-				valuePerSite = pointValuesStream.collect(Collectors.toList());
-			}
-			// Stream<Double> pointValuesStream = ((JSONObject)
-			// response.get(0)).getJSONArray("datapoints").toList().stream()
-			// .filter(el -> ((ArrayList) el).get(0) != null)
-			// .map(el -> (Double.parseDouble(((ArrayList) el).get(0).toString())));
-			//
-			// valuePerSite = pointValuesStream.collect(Collectors.toList());
-			outputList.put(targetName, valuePerSite);
-		}
-		return outputList;
-	}
+        try {
+            FileWriter dataFile;
+            PrintWriter dataWriter;
+            File userDataFile = new File(fileName);
+            if (userDataFile.exists()) {
+                dataFile = new FileWriter(fileName, true);
+                System.out.println("Added to existing file: " + fileName);
+            } else {
+                dataFile = new FileWriter(fileName);
+                System.out.println("Created new file: " + fileName);
+            }
+            dataWriter = new PrintWriter(dataFile);
+            dataWriter.println(output);
+            dataWriter.close();
 
-	private static void printMap(Map<String, List<Double>> inputedMap) {
-		for (Map.Entry<String, List<Double>> entry : inputedMap.entrySet()) {
-			String key = entry.getKey();
-			List<Double> value = entry.getValue();
-			System.out.println("------------------" + key + "-------------------");
-			//System.out.println("Min   Max   Mean   Standard Deviation");
+        } catch (Exception e) {
+            System.out.println("File Error");
+        }
+    }
 
-			// String content;
-			Stream<Double> stream2 = value.stream();
-			System.out.println("min\n" + stream2.map(x -> {
-				//if (x != null) {
-					return ((Double) x).toString();
-//				} else {
-//					return "".toString();
-//				}
-			}).collect(Collectors.joining(", ")));
-		}
-	}
+    private static Map<String, List<Double>> calculateStatsPerSite(Map<String, List<Double>> inputedMap) {
 
-	private static void saveToTxt(Map<String, List<Double>> inputedMap, String fileName) {
-		fileName = fileName + ".txt";
-		try {
-			FileWriter dataFile;
-			PrintWriter dataWriter;
-			File userDataFile = new File(fileName);
-			if (userDataFile.exists()) {
-				dataFile = new FileWriter(fileName, true);
-				System.out.println("Added to existing file: " + fileName);
-			} else {
-				dataFile = new FileWriter(fileName);
-				System.out.println("Created new file: " + fileName);
-			}
-			dataWriter = new PrintWriter(dataFile);
-			for (Map.Entry<String, List<Double>> entry : inputedMap.entrySet()) {
-				String key = entry.getKey();
-				List<Double> value = entry.getValue();
-				Stream<Double> stream2 = value.stream();
-				dataWriter.println(key+" "+stream2.map(x -> {
-					//if (x != null) {
-						return ((Double) x).toString();
-//					} else {
-//						return "".toString();
-//					}
-				}).collect(Collectors.joining(", ")));
+        DescriptiveStatistics stats = new DescriptiveStatistics();
 
-			}
-			dataWriter.close();
+        Map<String, List<Double>> result = inputedMap.entrySet().stream().collect(
+                Collectors.toMap(x -> x.getKey(), x -> {
+                            List<Double> value = x.getValue();
+                            List<Double> filteredStatsStream = value.stream().filter(val -> val < 10000).collect(Collectors.toList());
+                            filteredStatsStream.forEach(val -> stats.addValue(val));
+                            return Arrays.asList(stats.getMin(), stats.getMax(), stats.getMean(), stats.getStandardDeviation());
+                        }
+                ));
 
-		} catch (Exception e) {
-			System.out.println("File Error");
-		}
-	}
+        return result;
+    }
 
-	private static Map<Long, ArrayList<Float>> filterEmptyStamps(Map<Long, ArrayList<Float>> inputedMap) {
-		Map<Long, ArrayList<Float>> outputData = new HashMap<>();
-		for (Map.Entry<Long, ArrayList<Float>> entry : inputedMap.entrySet()) {
-			Long key = entry.getKey();
-			ArrayList<Float> value = entry.getValue();
-			int counter = 0;
+    private static String getUrl(String fileName) {
 
-			for (int i = 0; i < value.size(); i++) {
-				if (value.get(i) == null) {
-					counter++;
-				}
-			}
-			if (counter < value.size())
-				outputData.put(key, value);
-		}
-		// printMap(outputData);
-		return outputData;
-	}
+        InputStream input = null;
+        String url = null;
+        try {
+            input = new FileInputStream(fileName);
+            Properties prop = new Properties();
+            prop.load(input);
+            String scheme = prop.getProperty("scheme");
+            String domain = prop.getProperty("domain");
+            String port = prop.getProperty("port");
+            String path = prop.getProperty("path");
+            url = scheme + "://" + domain + ":" + port + "/" + path;
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
-	private static Map<String, List<Double>> stats(Map<String, List<Double>> inputedMap) {
+        return url;
+    }
 
-		DescriptiveStatistics stats = new DescriptiveStatistics();
-		Double min;
-		Double max;
-		Double mean;
-		Double std;
-		Map<String, List<Double>> result = new HashMap<>();
-		List<Double> calcedValues;;
-		
-		for (Map.Entry<String, List<Double>> entry : inputedMap.entrySet()) {
-			String key = entry.getKey();
-			List<Double> value = entry.getValue();
-//			System.out.println("------------------" + key + "-------------------");
-//			System.out.println("values size: " + value.size());
-			for (int i = 0; i < value.size(); i++) {
-				if (value.get(i) < 10000) {
-					//System.out.print(value.get(i) + " ");
-					stats.addValue(value.get(i));
-				}
-			}
-				
-			calcedValues = new ArrayList<Double>();
-			min = stats.getMin();
-			max = stats.getMax();
-			mean = stats.getMean();
-			std = stats.getStandardDeviation();
-			calcedValues.add(min);
-			calcedValues.add(max);
-			calcedValues.add(mean);
-			calcedValues.add(std);
-//			System.out.println("\n");
-//			System.out.println("Min: " + min);
-//			System.out.println("Max: " + max);
-//			System.out.println("Mean: " + mean);
-//			System.out.println("Standard Deviation: " + std);
-//			System.out.println("calcedValues: "+calcedValues);
-			result.put(key, calcedValues);
-		}
-		return result;
-	}
-		
-	private static List<Double> statsImproved(Map<String, List<Double>> inputedMap) {
+    private static List<String> getUrlParameters(String fileName) {
 
-		DescriptiveStatistics stats = new DescriptiveStatistics();
-		//List<Double> output;
-		Map<String, List<Double>> output2;
-		Stream<List<Double>> result = inputedMap.entrySet().stream().map(x -> {
-			String key = x.getKey();
-			List<Double> value = x.getValue();
-			List<Double> filteredStatsStream = value.stream().filter(val -> val < 10000).collect(Collectors.toList());
-			filteredStatsStream.forEach(val -> stats.addValue(val));
-			return Arrays.asList(stats.getMin(), stats.getMax(), stats.getMean(), stats.getStandardDeviation());
-		});	
+        InputStream input = null;
+        List<String> postParameters = new LinkedList<String>();
 
-		List<Double> output = result.flatMap(List::stream).collect(Collectors.toList());
-		//output2.put(key, output);
-		return output;
-	}
-	
-	private static Map<String, List<Double>> statsImproved2(Map<String, List<Double>> inputedMap) {
+        try {
+            input = new FileInputStream(fileName);
+            Properties prop = new Properties();
+            prop.load(input);
+            String from = prop.getProperty("from");
+            String until = prop.getProperty("until");
+            String format = prop.getProperty("format");
 
-		DescriptiveStatistics stats = new DescriptiveStatistics();
-		//List<Double> output;
-		Map<String, List<Double>> output2 =new HashMap<>();;
-//		Stream<Map<String, List<Double>>> result = inputedMap.entrySet().stream().map(x -> {
-//			String key = x.getKey();
-//			List<Double> value = x.getValue();
-//			List<Double> filteredStatsStream = value.stream().filter(val -> val < 10000).collect(Collectors.toList());
-//			filteredStatsStream.forEach(val -> stats.addValue(val));
-//			//return Arrays.asList(key, Double.toString(stats.getMin()), Double.toString(stats.getMax()), Double.toString(stats.getMean()), Double.toString(stats.getStandardDeviation()));
-//			return Collectors.toMap(key,Arrays.asList(stats.getMin(), stats.getMax(), stats.getMean(), stats.getStandardDeviation()));
-//		});	
-//		
-		
-		Map<String, List<Double>> result = inputedMap.entrySet().stream().collect(
-				Collectors.toMap( x -> x.getKey(), x -> {
-					List<Double> value = x.getValue();
-					List<Double> filteredStatsStream = value.stream().filter(val -> val < 10000).collect(Collectors.toList());
-					filteredStatsStream.forEach(val -> stats.addValue(val));
-					return Arrays.asList(stats.getMin(), stats.getMax(), stats.getMean(), stats.getStandardDeviation());
-				}
-				));	
-		
-		//List<Double> output = result.flatMap(List::stream).collect(Collectors.toList());
-		
-		
-		
-//		List<Double> output = result
-//				.skip(1)
-//				.forEach(val->Double.parseDouble(val.));
-//
-//		result
-//		.skip(1)
-//		.forEach(val->output2.put(result.findFirst().get().toString(),val.forEach(val2->Double.parseDouble(val2))));
-		
-		return result;
-	}
+            int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
+            for (int i = 1; i < amoutOfTargets + 1; i++) {
+                String target = prop.getProperty("target." + i);
+                target = URLEncoder.encode(target, "UTF-8");
+                postParameters.add("target=" + target + "&from=" + from + "&until=" + until + "&format=" + format);
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
-	private static Map<String, ArrayList<String>> getUrlParameters(String fileName) {
-		Properties prop = new Properties();
-		Map<String, ArrayList<String>> outputData = new HashMap<>();
-		InputStream input = null;
-		String scheme;
-		String domain;
-		String port;
-		String path;
-		String url;
-		ArrayList<String> finalTargets = new ArrayList<String>();
-		String target;
-		String from;
-		String until;
-		String format;
-		int amoutOfTargets;
-		try {
-			input = new FileInputStream("config.properties.txt");
-			prop.load(input);
-			scheme = prop.getProperty("scheme");
-			domain = prop.getProperty("domain");
-			port = prop.getProperty("port");
-			path = prop.getProperty("path");
-			url = scheme + "://" + domain + ":" + port + "/" + path;
-
-			from = prop.getProperty("from");
-			until = prop.getProperty("until");
-			format = prop.getProperty("format");
-			amoutOfTargets=Integer.parseInt(prop.getProperty("amoutOfTargets"));
-			for (int i = 1; i < amoutOfTargets+1; i++) {
-				target = prop.getProperty("target." + i);
-				target = URLEncoder.encode(target, "UTF-8");
-				finalTargets.add("target=" + target + "&from=" + from + "&until=" + until + "&format=" + format);
-			}
-			outputData.put(url, finalTargets);
-
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		} finally {
-			if (input != null) {
-				try {
-					input.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-		return outputData;
-	}
+        return postParameters;
+    }
 
 }
