@@ -29,8 +29,38 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.json.*;//commentarz
+import org.json.*;
+
 public class MyConnection {
+
+	public static void main(String[] args) throws Exception {
+//		1. responseData = http.sendPost(key, value.get(i));
+//		2. performanceData2 = parsePerSite(responseData);
+//		3. stats(performanceData2);
+		MyConnection http = new MyConnection();
+		Map<String, ArrayList<String>> urlAndTargets;
+
+		urlAndTargets = getUrlParameters("config.properties");
+		System.out.println("urlAndTargets\n"+urlAndTargets);
+
+		urlAndTargets.entrySet().stream().forEach(x -> {
+			String key = x.getKey();
+			List<String> value = x.getValue();
+			List<String> filteredStatsStream = value.stream().collect(Collectors.toList());
+			filteredStatsStream.forEach(val -> {
+				try {
+					//stats(parsePerSite(http.sendPost(key, val)));
+					//printMap(stats(parsePerSite(http.sendPost(key, val))));
+					printMap(statsImproved2(parsePerSite(http.sendPost(key, val))));
+					//saveToTxt(stats(parsePerSite(http.sendPost(key, val))),"Dane");
+
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			});
+		});
+	}
 
 	private String sendPost(String url, String urlParameters) throws Exception {
 
@@ -347,32 +377,4 @@ public class MyConnection {
 		return outputData;
 	}
 
-	public static void main(String[] args) throws Exception {
-//		1. responseData = http.sendPost(key, value.get(i));
-//		2. performanceData2 = parsePerSite(responseData);
-//		3. stats(performanceData2);
-		MyConnection http = new MyConnection();
-		Map<String, ArrayList<String>> urlAndTargets;
-		
-		urlAndTargets = getUrlParameters("config.properties");
-		System.out.println("urlAndTargets\n"+urlAndTargets);
-		
-		urlAndTargets.entrySet().stream().forEach(x -> {
-			String key = x.getKey();
-			List<String> value = x.getValue();
-			List<String> filteredStatsStream = value.stream().collect(Collectors.toList());
-			filteredStatsStream.forEach(val -> {
-				try {
-					//stats(parsePerSite(http.sendPost(key, val)));
-					//printMap(stats(parsePerSite(http.sendPost(key, val))));
-					printMap(statsImproved2(parsePerSite(http.sendPost(key, val))));
-					//saveToTxt(stats(parsePerSite(http.sendPost(key, val))),"Dane");
-					
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			});
-		});			
-	}
 }

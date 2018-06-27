@@ -1,2 +1,4 @@
 bin/
 Dane.txt
+.idea/
+*.iml
