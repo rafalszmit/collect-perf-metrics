@@ -3,6 +3,10 @@
 *.iml
 /build/
 /.gradle
+.classpath
+.project
+/.settings/
+
 
 Dane.txt
 
