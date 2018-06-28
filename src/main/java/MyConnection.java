@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 
 public class MyConnection {
 
+
 	static String CONFIG_FILE = "config.properties";
 
 	public static void main(String[] args) throws Exception {
@@ -22,6 +23,7 @@ public class MyConnection {
 		String url = getUrl(CONFIG_FILE);
 		List<String> postParameters = getUrlParameters(CONFIG_FILE);
 		List<Double> targetLimits = getLimits(CONFIG_FILE);
+        List<String> headers = getHeaders(CONFIG_FILE);
 
 		for (int i = 0; i < postParameters.size(); i++) {
 			try {
@@ -29,13 +31,45 @@ public class MyConnection {
 				Map<String, List<Double>> measurementsPerSite = parseMeasurementsPerSite(metricData);
 				Map<String, List<Double>> statsPerSite = calculateStatsPerSite(measurementsPerSite,
 						targetLimits.get(i));
-				String output = prepareOutput(postParameters.get(i), statsPerSite);
+				String output = prepareOutput(headers.get(i) , statsPerSite);
 				saveToFile(output, "Dane.txt");
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
+
 	}
+	
+	private static List<Double> getLimits(String fileName) {
+			InputStream input = null;
+			List<Double> result = new ArrayList<>();
+
+			try {
+				input = new FileInputStream(fileName);
+				Properties prop = new Properties();
+				prop.load(input);
+				int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
+				for (int i = 1; i < amoutOfTargets + 1; i++) {
+					// String target = prop.getProperty("target." + i);
+					Double limit = Double.parseDouble(prop.getProperty("target." + i + ".limit"));
+					// target = URLEncoder.encode(target, "UTF-8");
+					result.add(limit);
+				}
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			} finally {
+				if (input != null) {
+					try {
+						input.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			return result;
+		}
+
+	
 
 	private String sendPost(String url, String urlParameters) throws Exception {
 
@@ -186,7 +220,7 @@ public class MyConnection {
 
 			int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
 			for (int i = 1; i < amoutOfTargets + 1; i++) {
-				String target = prop.getProperty("target." + i);
+				String target = prop.getProperty("target." + i + ".params");
 				target = URLEncoder.encode(target, "UTF-8");
 				postParameters.add("target=" + target + "&from=" + from + "&until=" + until + "&format=" + format);
 			}
@@ -205,33 +239,35 @@ public class MyConnection {
 		return postParameters;
 	}
 
-	private static List<Double> getLimits(String fileName) {
-		InputStream input = null;
-		List<Double> result = new ArrayList<>();
 
-		try {
-			input = new FileInputStream(fileName);
-			Properties prop = new Properties();
-			prop.load(input);
-			int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
-			for (int i = 1; i < amoutOfTargets + 1; i++) {
-				// String target = prop.getProperty("target." + i);
-				Double limit = Double.parseDouble(prop.getProperty("targetLimit." + i));
-				// target = URLEncoder.encode(target, "UTF-8");
-				result.add(limit);
-			}
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		} finally {
-			if (input != null) {
-				try {
-					input.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		return result;
-	}
+    private static List<String> getHeaders(String fileName) {
+
+        InputStream input = null;
+        List<String> headers = new LinkedList<String>();
+
+        try {
+            input = new FileInputStream(fileName);
+            Properties prop = new Properties();
+            prop.load(input);
+
+            int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
+            for (int i = 1; i < amoutOfTargets + 1; i++) {
+                String header = prop.getProperty("target." + i + ".header");
+                headers.add(header);
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return headers;
+    }
 
 }
