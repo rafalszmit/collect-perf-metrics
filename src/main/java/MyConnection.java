@@ -21,19 +21,19 @@ public class MyConnection {
 
         String url = getUrl(CONFIG_FILE);
         List<String> postParameters = getUrlParameters(CONFIG_FILE);
-
-        postParameters.forEach(postParameter -> {
-
+        List<String> headers = getHeaders(CONFIG_FILE);
+        int i = 0;
+        for (String postParameter: postParameters) {
             try {
                 String metricData = http.sendPost(url, postParameter);
                 Map<String, List<Double>> measurementsPerSite = parseMeasurementsPerSite(metricData);
                 Map<String, List<Double>> statsPerSite = calculateStatsPerSite(measurementsPerSite);
-                String output = prepareOutput(postParameter, statsPerSite);
+                String output = prepareOutput(headers.get(i++) , statsPerSite);
                 saveToFile(output, "Dane.txt");
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        });
+        };
     }
 
     private String sendPost(String url, String urlParameters) throws Exception {
@@ -181,7 +181,7 @@ public class MyConnection {
 
             int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
             for (int i = 1; i < amoutOfTargets + 1; i++) {
-                String target = prop.getProperty("target." + i);
+                String target = prop.getProperty("target." + i + ".params");
                 target = URLEncoder.encode(target, "UTF-8");
                 postParameters.add("target=" + target + "&from=" + from + "&until=" + until + "&format=" + format);
             }
@@ -198,6 +198,36 @@ public class MyConnection {
         }
 
         return postParameters;
+    }
+
+    private static List<String> getHeaders(String fileName) {
+
+        InputStream input = null;
+        List<String> headers = new LinkedList<String>();
+
+        try {
+            input = new FileInputStream(fileName);
+            Properties prop = new Properties();
+            prop.load(input);
+
+            int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
+            for (int i = 1; i < amoutOfTargets + 1; i++) {
+                String header = prop.getProperty("target." + i + ".header");
+                headers.add(header);
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return headers;
     }
 
 }
