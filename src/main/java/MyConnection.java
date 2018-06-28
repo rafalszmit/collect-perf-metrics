@@ -86,7 +86,7 @@ public class MyConnection {
     }
 
     private static String prepareOutput(String header, Map<String, List<Double>> sitesWithStats) {
-        String LF = "\n";
+        String LF = System.getProperty("line.separator");
         StringBuffer output = new StringBuffer();
         output.append(header + LF);
         output.append("site,min,max,mean,stdev" + LF);
