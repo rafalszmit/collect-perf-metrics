@@ -40,7 +40,7 @@ public class MyConnection {
 
 	}
 	
-	private static List<Double> getLimits(String fileName) {
+	public static List<Double> getLimits(String fileName) {
 			InputStream input = null;
 			List<Double> result = new ArrayList<>();
 
@@ -71,7 +71,7 @@ public class MyConnection {
 
 	
 
-	private String sendPost(String url, String urlParameters) throws Exception {
+	public static String sendPost(String url, String urlParameters) throws Exception {
 
 		URL u = new URL(url);
 
@@ -101,7 +101,7 @@ public class MyConnection {
 		return grafData;
 	}
 
-	private static Map<String, List<Double>> parseMeasurementsPerSite(String grafData) {
+	public static Map<String, List<Double>> parseMeasurementsPerSite(String grafData) {
 
 		JSONArray response = new JSONArray(grafData);
 		Map<String, List<Double>> outputList = new HashMap<>();
@@ -120,7 +120,7 @@ public class MyConnection {
 		return outputList;
 	}
 
-	private static String prepareOutput(String header, Map<String, List<Double>> sitesWithStats) {
+	public static String prepareOutput(String header, Map<String, List<Double>> sitesWithStats) {
 		String LF = System.getProperty("line.separator");
 		StringBuffer output = new StringBuffer();
 		output.append(header + LF);
@@ -158,7 +158,7 @@ public class MyConnection {
 		}
 	}
 
-	private static Map<String, List<Double>> calculateStatsPerSite(Map<String, List<Double>> inputedMap, Double limit) {
+	static Map<String, List<Double>> calculateStatsPerSite(Map<String, List<Double>> inputedMap, Double limit) {
 
 		DescriptiveStatistics stats = new DescriptiveStatistics();
 
@@ -177,7 +177,7 @@ public class MyConnection {
 		return result;
 	}
 
-	private static String getUrl(String fileName) {
+	public static String getUrl(String fileName) {
 
 		InputStream input = null;
 		String url = null;
@@ -205,7 +205,7 @@ public class MyConnection {
 		return url;
 	}
 
-	private static List<String> getUrlParameters(String fileName) {
+	public static List<String> getUrlParameters(String fileName) {
 
 		InputStream input = null;
 		List<String> postParameters = new LinkedList<String>();
@@ -240,7 +240,7 @@ public class MyConnection {
 	}
 
 
-    private static List<String> getHeaders(String fileName) {
+    public static List<String> getHeaders(String fileName) {
 
         InputStream input = null;
         List<String> headers = new LinkedList<String>();
