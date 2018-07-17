@@ -18,14 +18,14 @@ public class AppTest {
 	static String CONFIG_FILE = "config.properties";
 
 	@Test
-	public void shouldReturnCorrectHeaders() {
+	public void should_Return_Correct_Headers() {
 		assertEquals("First Visula Change", MyConnection.getHeaders(CONFIG_FILE).get(0));
 		assertEquals("Last Visula Change", MyConnection.getHeaders(CONFIG_FILE).get(1));
 		assertEquals("Backend time", MyConnection.getHeaders(CONFIG_FILE).get(2));
 	}
 
 	@Test
-	public void shouldReturnCorrectCalculationswithoutLimit() {
+	public void should_Return_Correct_Calculations_without_Limit() {
 		Map<String, List<Double>> inputedMap = new HashMap();
 		inputedMap.put("www.ebilet.pl", Arrays.asList(0.0, 100.0, 200.0, 300.0));
 		assertEquals(Arrays.asList(0.0, 300.0, 150.0, 129.09944487358058),
@@ -33,7 +33,7 @@ public class AppTest {
 	}
 
 	@Test
-	public void shouldReturnCorrectCalculationswithLimit() {
+	public void should_Return_Correct_Calculations_with_Limit() {
 		Map<String, List<Double>> inputedMap = new HashMap();
 		inputedMap.put("www.ebilet.pl", Arrays.asList(0.0, 100.0, 200.0, 300.0));
 		assertEquals(Arrays.asList(0.0, 200.0, 100.00, 100.0),
@@ -41,7 +41,18 @@ public class AppTest {
 	}
 
 	@Test
-	public void shouldReturnParsedMesurementsPerSite() {
+	public void should_Return_Correct_Calculations_For_Multiple_Element_Map() {
+		Map<String, List<Double>> inputedMap = new HashMap();
+		Map<String, List<Double>> expectedMap = new HashMap();
+		inputedMap.put("testSite_01", Arrays.asList(0.0, 100.0, 200.0, 300.0));
+		inputedMap.put("testSite_02", Arrays.asList(0.0, 1000.0, 2000.0, 3000.0));
+		expectedMap.put("testSite_01", Arrays.asList(0.0, 300.0, 150.0, 129.09944487358058));
+		expectedMap.put("testSite_02", Arrays.asList(0.0, 3000.0, 1500.0, 1290.9944487358057));
+		assertEquals(expectedMap, MyConnection.calculateStatsPerSite(inputedMap, 10000000.0));
+	}
+
+	@Test
+	public void should_Return_Parsed_Mesurements_Per_Site() {
 		String input = "[{\"target\": \"www_ebilet_pl\", \"datapoints\": [[61.0, 1529665200], [66.0, 1530226800], [null, 1530228600], [66.0, 1530230400], [null, 1530232200]]},{\"target\": \"www_bilety24_pl\", \"datapoints\": [[67.0, 1529665200], [66.0, 1530226800], [null, 1530228600], [66.0, 1530230400], [null, 1530232200]]}]";
 		Map<String, List<Double>> inputMap = new HashMap<>();
 		inputMap.put("www_ebilet_pl", Arrays.asList(61.0, 66.0, 66.0));
@@ -52,14 +63,14 @@ public class AppTest {
 	}
 
 	@Test
-	public void shouldReturnUrl() {
+	public void should_Return_Url() {
 		String input = "http://176.119.59.95:3000/api/datasources/proxy/1/render";
 		String fileName = "config.properties";
 		assertEquals(input, MyConnection.getUrl(fileName));
 	}
 
 	@Test
-	public void shouldReturnUrlParameters() {
+	public void should_Return_Url_Parameters() {
 		List<String> parameters = new LinkedList<String>();
 		parameters.add(
 				"target=aliasByNode%28sitespeed_io.bilety_na_wydarzenia.pageSummary.*.*.chrome.native.browsertime.statistics.visualMetrics.FirstVisualChange.mean%2C+3%29&from=-7d&until=now&format=json");
@@ -77,14 +88,19 @@ public class AppTest {
 	}
 
 	@Test
-	public void shouldReturnAllDataFromSingleGraf() throws Exception {
+	/*
+	 * Can't make this one work. It requires data returned from website. The
+	 * 'grafData' variable was suppose to emulate the data but there is some
+	 * mismatch at the end of the string. Possible some lines separators or "\n".
+	 */
+	public void should_Return_All_Data_From_Single_Graf() throws Exception {
 		String grafData = "[{\"target\": \"www_bilety24_pl\", \"datapoints\": [[362.4117647058824, 1529725800], [401.70588235294116, 1529786400], [399.70588235294116, 1529847000], [397.4375, 1529907600], [399.6470588235294, 1529968200], [427.1764705882353, 1530028800], [511.47058823529414, 1530089400], [409.47058823529414, 1530150000], [407.52941176470586, 1530210600], [377.6666666666667, 1530271200]]}, {\"target\": \"www_ebilet_pl\", \"datapoints\": [[650.5882352941177, 1529725800], [654.4705882352941, 1529786400], [658.3529411764706, 1529847000], [718.4375, 1529907600], [711.4117647058823, 1529968200], [709.5294117647059, 1530028800], [780.1764705882352, 1530089400], [725.2352941176471, 1530150000], [721.1176470588235, 1530210600], [788.3333333333334, 1530271200]]}, {\"target\": \"www_eventim_pl\", \"datapoints\": [[738.8235294117648, 1529725800], [691.8823529411765, 1529786400], [729.0588235294117, 1529847000], [843.5, 1529907600], [750.7647058823529, 1529968200], [1035.0, 1530028800], [1015.1764705882352, 1530089400], [946.8235294117648, 1530150000], [927.2352941176471, 1530210600], [955.3333333333334, 1530271200]]}, {\"target\": \"www_kupbilet_pl\", \"datapoints\": [[668.2352941176471, 1529725800], [646.8235294117648, 1529786400], [623.2352941176471, 1529847000], [683.125, 1529907600], [680.0588235294117, 1529968200], [711.3529411764706, 1530028800], [1034.8823529411766, 1530089400], [686.0588235294117, 1530150000], [736.9411764705883, 1530210600], [755.3333333333334, 1530271200]]}, {\"target\": \"www_livenation_pl\", \"datapoints\": [[721.3529411764706, 1529725800], [680.1176470588235, 1529786400], [1097.6470588235295, 1529847000], [556.0, 1529907600], [435.0, 1529968200], [381.94117647058823, 1530028800], [593.8235294117648, 1530089400], [444.7647058823529, 1530150000], [401.6470588235294, 1530210600], [499.6666666666667, 1530271200]]}, {\"target\": \"www_viagogo_pl\", \"datapoints\": [[754.6470588235294, 1529725800], [748.8235294117648, 1529786400], [750.6470588235294, 1529847000], [776.75, 1529907600], [756.5882352941177, 1529968200], [762.4117647058823, 1530028800], [946.7058823529412, 1530089400], [780.1764705882352, 1530150000], [793.7647058823529, 1530210600], [810.6666666666666, 1530271200]]}]\r\n]";
 		assertEquals(grafData, MyConnection.sendPost("http://176.119.59.95:3000/api/datasources/proxy/1/render",
 				"target=aliasByNode%28sitespeed_io.bilety_na_wydarzenia.pageSummary.*.*.chrome.native.browsertime.statistics.visualMetrics.FirstVisualChange.mean%2C+3%29&from=-7d&until=now&format=json&maxDataPoints=10"));
 	}
 
 	@Test
-	public void shouldReturnGrafLimits() {
+	public void should_Return_Graf_Limits() {
 		List<Double> limits = new ArrayList<>();
 		limits.add(5000.0);
 		limits.add(10000.0);
@@ -96,14 +112,13 @@ public class AppTest {
 		assertEquals(limits.get(3), MyConnection.getLimits("config.properties").get(3));
 	}
 
-
-
 	@Test
-	public void shouldReturnOutputReadyToSaveToFile() {
+	public void should_Return_Output_Ready_To_Save_To_File() {
 		Map<String, List<Double>> inputMap = new HashMap<>();
-		String output="www_bilety24_pl, 0.0, 100.0, 200.0, 300.0";
+		String LF = System.getProperty("line.separator");
+		String output = "First Visula Change" + LF + "site,min,max,mean,stdev" + LF
+				+ "www_bilety24_pl,0.0,100.0,200.0,300.0" + LF + LF;
 		inputMap.put("www_bilety24_pl", Arrays.asList(0.0, 100.0, 200.0, 300.0));
-		//inputMap.put("www_bilety24_pl", Arrays.asList(0.0, 100.0, 200.0, 300.0));
-		assertEquals(output,MyConnection.prepareOutput("www_bilety24_pl",inputMap));
+		assertEquals(output, MyConnection.prepareOutput("First Visula Change", inputMap));
 	}
 }
