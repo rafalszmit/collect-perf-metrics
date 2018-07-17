@@ -145,4 +145,4 @@ target.1.limit	1000000,5000,0
 ** grafana
 websites 	6,1,<MAX>
 measurements	<average-week>,<max>,0
-wykres mo¿e 
+wykres moÂ¿e 
