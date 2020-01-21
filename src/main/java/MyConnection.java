@@ -13,7 +13,6 @@ import java.util.stream.Stream;
 
 public class MyConnection {
 
-
 	static String CONFIG_FILE = "config.properties";
 
 	public static void main(String[] args) throws Exception {
@@ -23,7 +22,7 @@ public class MyConnection {
 		String url = getUrl(CONFIG_FILE);
 		List<String> postParameters = getUrlParameters(CONFIG_FILE);
 		List<Double> targetLimits = getLimits(CONFIG_FILE);
-        List<String> headers = getHeaders(CONFIG_FILE);
+		List<String> headers = getHeaders(CONFIG_FILE);
 
 		for (int i = 0; i < postParameters.size(); i++) {
 			try {
@@ -31,7 +30,7 @@ public class MyConnection {
 				Map<String, List<Double>> measurementsPerSite = parseMeasurementsPerSite(metricData);
 				Map<String, List<Double>> statsPerSite = calculateStatsPerSite(measurementsPerSite,
 						targetLimits.get(i));
-				String output = prepareOutput(headers.get(i) , statsPerSite);
+				String output = prepareOutput(headers.get(i), statsPerSite);
 				saveToFile(output, "Dane.txt");
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -39,39 +38,35 @@ public class MyConnection {
 		}
 
 	}
-	
-	private static List<Double> getLimits(String fileName) {
-			InputStream input = null;
-			List<Double> result = new ArrayList<>();
 
-			try {
-				input = new FileInputStream(fileName);
-				Properties prop = new Properties();
-				prop.load(input);
-				int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
-				for (int i = 1; i < amoutOfTargets + 1; i++) {
-					// String target = prop.getProperty("target." + i);
-					Double limit = Double.parseDouble(prop.getProperty("target." + i + ".limit"));
-					// target = URLEncoder.encode(target, "UTF-8");
-					result.add(limit);
-				}
-			} catch (IOException ex) {
-				ex.printStackTrace();
-			} finally {
-				if (input != null) {
-					try {
-						input.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+	public static List<Double> getLimits(String fileName) {
+		InputStream input = null;
+		List<Double> result = new ArrayList<>();
+
+		try {
+			input = new FileInputStream(fileName);
+			Properties prop = new Properties();
+			prop.load(input);
+			int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
+			for (int i = 1; i < amoutOfTargets + 1; i++) {
+				Double limit = Double.parseDouble(prop.getProperty("target." + i + ".limit"));
+				result.add(limit);
+			}
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			if (input != null) {
+				try {
+					input.close();
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 			}
-			return result;
 		}
+		return result;
+	}
 
-	
-
-	private String sendPost(String url, String urlParameters) throws Exception {
+	public static String sendPost(String url, String urlParameters) throws Exception {
 
 		URL u = new URL(url);
 
@@ -101,7 +96,7 @@ public class MyConnection {
 		return grafData;
 	}
 
-	private static Map<String, List<Double>> parseMeasurementsPerSite(String grafData) {
+	public static Map<String, List<Double>> parseMeasurementsPerSite(String grafData) {
 
 		JSONArray response = new JSONArray(grafData);
 		Map<String, List<Double>> outputList = new HashMap<>();
@@ -120,7 +115,7 @@ public class MyConnection {
 		return outputList;
 	}
 
-	private static String prepareOutput(String header, Map<String, List<Double>> sitesWithStats) {
+	public static String prepareOutput(String header, Map<String, List<Double>> sitesWithStats) {
 		String LF = System.getProperty("line.separator");
 		StringBuffer output = new StringBuffer();
 		output.append(header + LF);
@@ -158,14 +153,14 @@ public class MyConnection {
 		}
 	}
 
-	private static Map<String, List<Double>> calculateStatsPerSite(Map<String, List<Double>> inputedMap, Double limit) {
+	static Map<String, List<Double>> calculateStatsPerSite(Map<String, List<Double>> inputedMap, Double limit) {
 
 		DescriptiveStatistics stats = new DescriptiveStatistics();
 
 		Map<String, List<Double>> result = inputedMap.entrySet().stream()
 				.collect(Collectors.toMap(x -> x.getKey(), x -> {
 					List<Double> value = x.getValue();
-
+					stats.clear();
 					List<Double> filteredStatsStream = value.stream().filter(val -> val < limit)
 							.collect(Collectors.toList());
 					filteredStatsStream.forEach(val -> stats.addValue(val));
@@ -177,7 +172,7 @@ public class MyConnection {
 		return result;
 	}
 
-	private static String getUrl(String fileName) {
+	public static String getUrl(String fileName) {
 
 		InputStream input = null;
 		String url = null;
@@ -205,7 +200,7 @@ public class MyConnection {
 		return url;
 	}
 
-	private static List<String> getUrlParameters(String fileName) {
+	public static List<String> getUrlParameters(String fileName) {
 
 		InputStream input = null;
 		List<String> postParameters = new LinkedList<String>();
@@ -239,35 +234,34 @@ public class MyConnection {
 		return postParameters;
 	}
 
+	public static List<String> getHeaders(String fileName) {
 
-    private static List<String> getHeaders(String fileName) {
+		InputStream input = null;
+		List<String> headers = new LinkedList<String>();
 
-        InputStream input = null;
-        List<String> headers = new LinkedList<String>();
+		try {
+			input = new FileInputStream(fileName);
+			Properties prop = new Properties();
+			prop.load(input);
 
-        try {
-            input = new FileInputStream(fileName);
-            Properties prop = new Properties();
-            prop.load(input);
+			int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
+			for (int i = 1; i < amoutOfTargets + 1; i++) {
+				String header = prop.getProperty("target." + i + ".header");
+				headers.add(header);
+			}
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			if (input != null) {
+				try {
+					input.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 
-            int amoutOfTargets = Integer.parseInt(prop.getProperty("amoutOfTargets"));
-            for (int i = 1; i < amoutOfTargets + 1; i++) {
-                String header = prop.getProperty("target." + i + ".header");
-                headers.add(header);
-            }
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        } finally {
-            if (input != null) {
-                try {
-                    input.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return headers;
-    }
+		return headers;
+	}
 
 }
